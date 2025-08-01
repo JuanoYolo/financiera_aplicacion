@@ -83,43 +83,9 @@ finapp/
 
 ---
 
-## 📲 Publicación en Google Play y monetización
 
-1. **Registro**: Abre una cuenta en Google Play Console (tarifa única USD 25).
-2. **Empaquetado**: Envuelve la app web con **Capacitor** para Android:
-
-   ```bash
-   npm install @capacitor/core @capacitor/cli
-   npx cap init
-   npm run build
-   npx cap copy android
-   npx cap open android
-   ```
-3. **Build y firma**: En Android Studio genera un AAB firmado para producción.
-4. **Ficha en Play Store**: Completa descripción, capturas, políticas y categoría.
-5. **Monetización**: Elige modelo:
-
-   * **Pago por descarga**
-   * **Compras in‑app** (Google Play Billing)
-   * **Publicidad** (AdMob)
-   * **Suscripciones**
-6. **Revisión y lanzamiento**: Google revisa tu app (1–3 días) y la publica.
-
-> **Nota**: Google retiene 15–30% de ingresos de descarga o IAP.
-
----
-
-## 🤝 Contribuir (privado)
-
-Este proyecto por ahora es de uso interno. Contacta al autor para sugerir mejoras o reportar errores.
-
----
-
-## 📬 Contacto
-
-* Autor: **Juano Monroy**
-* Email: [tu.email@ejemplo.com](mailto:tu.email@ejemplo.com)
 
 ---
 
 **¡Gracias por usar FinApp!**
+
