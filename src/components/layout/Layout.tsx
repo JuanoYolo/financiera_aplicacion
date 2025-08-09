@@ -1,12 +1,23 @@
 import React from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 
-function NavItem({ to, children }: {to:string; children:React.ReactNode}) {
+function NavItem({
+  to,
+  children,
+  end = false
+}: {
+  to: string
+  children: React.ReactNode
+  end?: boolean
+}) {
   return (
     <NavLink
       to={to}
-      className={({isActive}) =>
-        `px-3 py-2 rounded-xl border ${isActive ? 'bg-sky-600 text-white' : 'bg-white'}`
+      end={end}
+      className={({ isActive }) =>
+        `px-3 py-2 rounded-xl border ${
+          isActive ? 'bg-sky-600 text-white' : 'bg-white'
+        }`
       }
     >
       {children}
@@ -20,7 +31,9 @@ export default function Layout() {
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">FinanJuano (MVP)</h1>
         <nav className="flex gap-2">
-          <NavItem to="/accounts">Cuentas</NavItem>
+          <NavItem to="/accounts" end>Cuentas</NavItem>
+          <NavItem to="/transfers">Transferir</NavItem>
+          <NavItem to="/card">TDC</NavItem>          {/* NUEVA */}
           <NavItem to="/transactions">Transacciones</NavItem>
           <NavItem to="/transfers">Transferir</NavItem>
           <NavItem to="/reports">Reportes</NavItem>

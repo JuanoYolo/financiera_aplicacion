@@ -5,6 +5,7 @@ import dayjs from 'dayjs'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line } from 'recharts'
 import { formatCOP } from '../../lib/format'
 
+
 type MonthKey = string // 'YYYY-MM'
 
 function monthKey(d: string) { return dayjs(d).format('YYYY-MM') }
