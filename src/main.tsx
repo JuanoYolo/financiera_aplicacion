@@ -1,17 +1,16 @@
-// src/main.tsx
-import './index.css';       // <- Asegúrate de que este sea el path correcto
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App'
+import './index.css'
+import useAppStore from './store'   // <- default import
 
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import { FinancialApp } from './components/FinancialApp';
+function Boot() {
+  const ready = useAppStore(s => s.ready)
+  const loadAll = useAppStore(s => s.loadAll)
+  React.useEffect(() => { loadAll() }, [])
+  return ready ? <App/> : <div className="p-6">Cargando…</div>
+}
 
-const container = document.getElementById('root')!;
-const root = createRoot(container);
-
-root.render(
-  <React.StrictMode>
-    <FinancialApp />
-  </React.StrictMode>
-);
-
-
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode><Boot/></React.StrictMode>
+)

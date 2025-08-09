@@ -1,30 +1,25 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import path from "path";
-import tsconfigPaths from "vite-tsconfig-paths";
-import { componentTagger } from "lovable-tagger";
+import { VitePWA } from 'vite-plugin-pwa'
 
-export default defineConfig(({ mode }) => ({
-  server: {
-    host: "::",
-    port: 8080,
-  },
+export default defineConfig({
   plugins: [
     react(),
-    tsconfigPaths(),              // <- Resuelve @/* según tsconfig.paths
-    mode === "development" && componentTagger(),
-  ].filter(Boolean),
-  resolve: {
-    alias: {
-      // Alias manual, por si acaso:
-      "@": path.resolve(__dirname, "src"),
-      // Si quieres atajos extra:
-      "@components": path.resolve(__dirname, "src/components"),
-      "@layout":     path.resolve(__dirname, "src/components/layout"),
-      "@hooks":      path.resolve(__dirname, "src/hooks"),
-      "@utils":      path.resolve(__dirname, "src/utils"),
-    },
-    // Extensiones que Vite tratará de resolver automáticamente
-    extensions: [".js", ".ts", ".jsx", ".tsx", ".json"],
-  },
-}));
+    VitePWA({
+      registerType: 'autoUpdate',
+      devOptions: { enabled: false }, // para probar en npm run dev
+      manifest: {
+        name: 'FinanJuano',
+        short_name: 'FinanJuano',
+        start_url: '/',
+        display: 'standalone',
+        background_color: '#0b0f1a',
+        theme_color: '#0ea5e9',
+        icons: [
+          { src: '/pwa-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/pwa-512.png', sizes: '512x512', type: 'image/png' }
+        ]
+      }
+    })
+  ]
+})
