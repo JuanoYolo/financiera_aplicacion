@@ -1,9 +1,12 @@
 import React from 'react'
 import useAppStore from './store'
 import GMF from './lib/gmf'
+import NewTransactionForm from './components/ui/NewTransactionForm'
+import NewTransferForm from './components/ui/NewTransferForm'
+import NewAccountForm from './components/ui/NewAccountForm'
 
 export default function App() {
-  const { accounts, transactions, addAccount, addTransaction } = useAppStore()
+  const { accounts, transactions, addAccount, getAccountBalance } = useAppStore()
   const hasAccounts = accounts.length > 0
 
   const handleCreateDemo = async () => {
@@ -11,11 +14,12 @@ export default function App() {
       name: 'Bolsillo Principal',
       type: 'checking',
       provider: 'MiBanco',
-      isExempt4x1000: false
+      isExempt4x1000: false,
+      balance: 0 // saldo inicial demo (puedes quitar el botón si quieres)
     })
   }
 
-  // Demo 4x1000
+  // Demo 4×1000
   const brutoMax = GMF.grossFromNetAvailable(100000, false)
   const netoSale = GMF.netOut(brutoMax, false)
 
@@ -23,6 +27,7 @@ export default function App() {
     <div className="max-w-xl mx-auto p-4 space-y-4">
       <h1 className="text-2xl font-bold">FinanJuano (MVP)</h1>
 
+      {/* Cuentas */}
       <section className="p-3 rounded-2xl border">
         <h2 className="font-semibold mb-2">Cuentas</h2>
         <button
@@ -32,43 +37,47 @@ export default function App() {
           + Crear cuenta demo
         </button>
 
+        {/* Form crear cuenta con saldo inicial */}
+        <NewAccountForm />
+
         <ul className="mt-3 space-y-1">
           {accounts.map(a => (
             <li key={a.id} className="flex justify-between border rounded-xl px-3 py-2">
               <span>{a.name} — {a.type} {a.isExempt4x1000 ? '(Exenta GMF)' : ''}</span>
-              <span>{a.balance.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
+              <span>
+                {getAccountBalance(a.id).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+              </span>
             </li>
           ))}
           {!hasAccounts && <li className="text-sm text-gray-500">No hay cuentas aún.</li>}
         </ul>
       </section>
 
+      {/* Nueva transacción */}
       <section className="p-3 rounded-2xl border">
-        <h2 className="font-semibold mb-2">Transacciones (demo)</h2>
-        <button
-          className="px-3 py-2 rounded-xl bg-emerald-600 text-white disabled:opacity-60"
-          disabled={!hasAccounts}
-          onClick={() => addTransaction({
-            accountId: accounts[0].id,
-            kind: 'expense',
-            amount: -25000,
-            date: new Date().toISOString().slice(0, 10),
-            note: 'Café y algo más'
-          })}
-        >
-          + Gasto demo
-        </button>
-        {!hasAccounts && <p className="text-xs mt-2 text-gray-500">Crea una cuenta primero.</p>}
+        <h2 className="font-semibold mb-2">Nueva transacción</h2>
+        <NewTransactionForm />
 
-        <ul className="mt-3 space-y-1">
-          {transactions.slice(0, 6).map(t => (
+        <h3 className="font-semibold mt-4">Últimas</h3>
+        <ul className="mt-2 space-y-1">
+          {transactions.slice(0, 8).map(t => (
             <li key={t.id} className="text-sm border rounded-xl px-3 py-2">
               {t.date} — {t.kind} — {t.amount.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })} {t.note ?? ''}
             </li>
           ))}
+          {transactions.length === 0 && (
+            <li className="text-sm text-gray-500">Aún no hay transacciones.</li>
+          )}
         </ul>
       </section>
 
+      {/* Transferencia */}
+      <section className="p-3 rounded-2xl border">
+        <h2 className="font-semibold mb-2">Transferencia</h2>
+        <NewTransferForm />
+      </section>
+
+      {/* 4×1000 rápido */}
       <section className="p-3 rounded-2xl border">
         <h2 className="font-semibold mb-2">4×1000 rápido</h2>
         <p className="text-sm">
