@@ -8,7 +8,7 @@ import dayjs from '../lib/dayjs'
 import { formatCOP } from '../lib/format'
 
 export default function CardPage() {
-  const { accounts, transactions, getAccountBalance } = useAppStore()
+  const { accounts, transactions, getAccountBalance, statementInfo } = useAppStore()
   const cards = accounts.filter(a => a.type === 'credit_card')
 
   if (cards.length === 0) {
@@ -20,7 +20,7 @@ export default function CardPage() {
     )
   }
 
-  const card = cards[0] // TODO: selector si hay varias
+  const card = cards[0] // TODO: selector multi-TDC
   const debt = getAccountBalance(card.id)
   const limit = card.creditLimit ?? 0
   const available = Math.max(limit - debt, 0)
@@ -32,6 +32,8 @@ export default function CardPage() {
 
   const pending = transactions.filter(t => t.accountId === card.id && t.kind === 'card_charge' && t.status === 'pending')
   const posted  = transactions.filter(t => t.accountId === card.id && t.kind === 'card_charge' && (!t.status || t.status === 'posted'))
+
+  const stmt = statementInfo(card.id)
 
   return (
     <section className="space-y-4">
@@ -53,13 +55,17 @@ export default function CardPage() {
         </div>
       </div>
 
-      {/* Nueva compra con validación de cupo */}
+      <div className="grid md:grid-cols-3 gap-3">
+        <Kpi title="Mínimo a pagar" value={formatCOP(stmt.minPayment)} />
+        <Kpi title="Total del estado" value={formatCOP(stmt.statementTotal)} />
+        <Kpi title="Vence" value={stmt.due || '—'} />
+      </div>
+
       <div className="rounded-2xl border p-3">
         <h3 className="font-semibold mb-2">Registrar compra</h3>
         <NewCardChargeForm />
       </div>
 
-      {/* Pagos */}
       <div className="rounded-2xl border p-3">
         <h3 className="font-semibold mb-2">Pagar tarjeta</h3>
         <PayCardForm />
@@ -90,5 +96,14 @@ export default function CardPage() {
         </div>
       </div>
     </section>
+  )
+}
+
+function Kpi({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="rounded-2xl border p-3">
+      <div className="text-xs text-gray-500">{title}</div>
+      <div className="text-xl font-semibold">{value}</div>
+    </div>
   )
 }

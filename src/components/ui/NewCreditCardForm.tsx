@@ -8,10 +8,11 @@ const schema = z.object({
   name: z.string().min(1),
   provider: z.string().optional(),
   creditLimit: z.coerce.number().positive(),
-  cutoffDay: z.coerce.number().min(1).max(28),
-  dueDay: z.coerce.number().min(1).max(28),
+  cutoffDay: z.coerce.number().min(1).max(31), // ← 31
+  dueDay: z.coerce.number().min(1).max(31),    // ← 31
   aprAnnual: z.coerce.number().optional()
 })
+
 type FormValues = z.infer<typeof schema>
 
 export default function NewCreditCardForm() {

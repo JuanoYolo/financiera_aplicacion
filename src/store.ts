@@ -3,7 +3,10 @@ import { db, ensureSeed } from './db'
 import type { Account, Transaction, Category, TxStatus } from './types'
 import { gmfFee } from './lib/gmf'
 import dayjs from './lib/dayjs'
-import { lastStatementRange } from './lib/card'
+import { lastStatementMeta } from './lib/card'
+
+const MIN_PAYMENT_PERCENT = 0.05   // 5% del estado
+const MIN_PAYMENT_FLOOR   = 20000  // piso COP 20k
 
 type State = {
   ready: boolean
@@ -44,7 +47,16 @@ type State = {
   }) => Promise<void>
 
   getAccountBalance: (accountId: string) => number
+
+  // compat: “para no intereses” = total del último estado
   statementToAvoidInterest: (cardAccountId: string) => number
+
+  // NUEVO: info de estado
+  statementInfo: (cardAccountId: string) => {
+    start: string; end: string; due: string;
+    statementTotal: number;
+    minPayment: number;
+  }
 }
 
 const useAppStore = create<State>((set, get) => ({
@@ -85,7 +97,7 @@ const useAppStore = create<State>((set, get) => ({
     if (!acc) return
     const deltaMovs = get().transactions
       .filter(t => t.accountId === id)
-      .filter(t => !t.status || t.status === 'posted') // ignorar pending/reversed
+      .filter(t => !t.status || t.status === 'posted')
       .reduce((s, t) => s + t.amount, 0)
     const newInitial = targetCurrentBalance - deltaMovs
     await db.accounts.update(id, { balance: newInitial })
@@ -101,7 +113,6 @@ const useAppStore = create<State>((set, get) => ({
 
   createTransfer: async ({ fromAccountId, toAccountId, amount, dateISO, note }) => {
     if (fromAccountId === toAccountId) throw new Error('Las cuentas deben ser distintas')
-
     const { accounts } = get()
     const fromAcc = accounts.find(a => a.id === fromAccountId)
     const toAcc   = accounts.find(a => a.id === toAccountId)
@@ -118,8 +129,7 @@ const useAppStore = create<State>((set, get) => ({
       amount: -Math.abs(amount),
       date: dateISO,
       note,
-      linkId,
-      createdAt
+      linkId, createdAt
     }
     const inTx: Transaction = {
       id: crypto.randomUUID(),
@@ -128,8 +138,7 @@ const useAppStore = create<State>((set, get) => ({
       amount: Math.abs(amount),
       date: dateISO,
       note,
-      linkId,
-      createdAt
+      linkId, createdAt
     }
     const feeTx: Transaction | null = fee > 0 ? {
       id: crypto.randomUUID(),
@@ -139,8 +148,7 @@ const useAppStore = create<State>((set, get) => ({
       date: dateISO,
       categoryId: 'cat-fees',
       note: 'GMF 4×1000',
-      linkId,
-      createdAt
+      linkId, createdAt
     } : null
 
     await db.transaction('rw', db.transactions, async () => {
@@ -165,9 +173,7 @@ const useAppStore = create<State>((set, get) => ({
     if (!acc) throw new Error('Tarjeta no encontrada')
     const limit = acc.creditLimit ?? 0
 
-    // deuda confirmada
     const confirmedDebt = get().getAccountBalance(cardAccountId)
-    // pendientes (solo charges pendientes)
     const pending = get().transactions
       .filter(t => t.accountId === cardAccountId && t.kind === 'card_charge' && t.status === 'pending')
       .reduce((s, t) => s + t.amount, 0)
@@ -241,19 +247,35 @@ const useAppStore = create<State>((set, get) => ({
     return inicial + delta
   },
 
+  // Compat: ahora es el total del último estado
   statementToAvoidInterest: (cardAccountId) => {
+    const info = get().statementInfo(cardAccountId)
+    return info.statementTotal
+  },
+
+  // NUEVO
+  statementInfo: (cardAccountId) => {
     const acc = get().accounts.find(a => a.id === cardAccountId)
-    if (!acc?.cutoffDay) return 0
-    const range = lastStatementRange(acc.cutoffDay, dayjs())
-    const tx = get().transactions.filter(t =>
+    if (!acc?.cutoffDay || !acc?.dueDay) return { start:'', end:'', due:'', statementTotal: 0, minPayment: 0 }
+
+    const meta = lastStatementMeta(acc.cutoffDay, acc.dueDay, dayjs())
+    const inRange = get().transactions.filter(t =>
       t.accountId === cardAccountId &&
       (!t.status || t.status === 'posted') &&
-      dayjs(t.date).isSameOrAfter(range.start) &&
-      dayjs(t.date).isSameOrBefore(range.end)
+      dayjs(t.date).isSameOrAfter(meta.start) &&
+      dayjs(t.date).isSameOrBefore(meta.end)
     )
-    const charges = tx.filter(t => t.kind === 'card_charge').reduce((s, t) => s + t.amount, 0)
-    const payments = tx.filter(t => t.kind === 'card_payment').reduce((s, t) => s + Math.abs(t.amount), 0)
-    return Math.max(charges - payments, 0)
+
+    const charges = inRange.filter(t => t.kind === 'card_charge' || t.kind === 'fee')
+      .reduce((s, t) => s + Math.max(t.amount, 0), 0)
+    const payments = inRange.filter(t => t.kind === 'card_payment')
+      .reduce((s, t) => s + Math.abs(t.amount), 0)
+
+    const statementTotal = Math.max(charges - payments, 0)
+    const minByPct = Math.floor(statementTotal * MIN_PAYMENT_PERCENT)
+    const minPayment = Math.min(statementTotal, Math.max(minByPct, MIN_PAYMENT_FLOOR))
+
+    return { start: meta.start, end: meta.end, due: meta.due, statementTotal, minPayment }
   }
 }))
 
